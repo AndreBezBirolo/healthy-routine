@@ -1,0 +1,221 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                 String            @id @default(uuid())
+  email              String            @unique
+  name               String
+  passwordHash       String
+  avatarUrl          String?
+  languagePreference String            @default("en")
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  memberships        WorkspaceMember[]
+  sessions           Session[]
+  activityLogs       ActivityLog[]
+  assignedMeals      MealPlan[]        @relation("AssignedChef")
+  assignedTasks      Task[]            @relation("AssignedTask")
+  paidExpenses       Expense[]
+  shoppingItems      ShoppingItem[]
+
+  @@map("users")
+}
+
+model Session {
+  id               String   @id @default(uuid())
+  userId           String
+  refreshTokenHash String
+  userAgent        String?
+  ipAddress        String?
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Workspace {
+  id            String            @id @default(uuid())
+  name          String
+  inviteCode    String            @unique
+  ownerId       String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  members       WorkspaceMember[]
+  mealPlans     MealPlan[]
+  recipes       Recipe[]
+  expenses      Expense[]
+  shoppingItems ShoppingItem[]
+  activityLogs  ActivityLog[]
+  subscription  Subscription?
+  tasks         Task[]
+
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String   @id @default(uuid())
+  workspaceId String
+  userId      String
+  role        String   @default("MEMBER") // OWNER | ADMIN | MEMBER
+  joinedAt    DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
+
+model MealPlan {
+  id               String    @id @default(uuid())
+  workspaceId      String
+  date             DateTime
+  mealType         String    @default("LUNCH") // BREAKFAST | LUNCH | DINNER | SNACK
+  isMealPrep       Boolean   @default(false)
+  isSpecial        Boolean   @default(false)
+  isConsumed       Boolean   @default(false)
+  consumedAt       DateTime?
+  recipeTitle      String
+  ingredients      String?   // JSON serialized string for ingredients list
+  notes            String?
+  assignedToUserId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assignedTo User?     @relation("AssignedChef", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, date])
+  @@map("meal_plans")
+}
+
+model Task {
+  id                String    @id @default(uuid())
+  workspaceId       String
+  title             String
+  description       String?
+  category          String    @default("HOUSEHOLD") // HOUSEHOLD | CLEANING | HABIT | PET | MAINTENANCE
+  dueDate           DateTime?
+  recurrence        String    @default("NONE") // NONE | DAILY | WEEKLY | MONTHLY
+  completed         Boolean   @default(false)
+  completedAt       DateTime?
+  completedByUserId String?
+  lastCompletedBy   String?
+  nextDueDate       DateTime?
+  assignedToUserId  String?
+  points            Int       @default(10)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assignedTo  User?     @relation("AssignedTask", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, completed])
+  @@map("tasks")
+}
+
+model Recipe {
+  id              String   @id @default(uuid())
+  workspaceId     String
+  title           String
+  category        String   @default("QUICK") // GOURMET | QUICK | WEEKEND | DESSERT | DRINK
+  ingredients     String // JSON serialized string for ingredients list
+  instructions    String
+  prepTimeMinutes Int      @default(30)
+  isFavorite      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, category])
+  @@map("recipes")
+}
+
+model ShoppingItem {
+  id              String    @id @default(uuid())
+  workspaceId     String
+  name            String
+  category        String    @default("GROCERIES") // GROCERIES | PRODUCE | SPICES | HOUSEHOLD | HYGIENE | PET
+  quantity        String?
+  price           Float?
+  recurrence      String    @default("NONE") // NONE | WEEKLY | MONTHLY
+  checked         Boolean   @default(false)
+  checkedAt       DateTime?
+  checkedByUserId String?
+  lastPurchasedAt DateTime?
+  lastPurchasedBy String?
+  nextPeriodLabel String?   // Ex: "Setembro / Mês 09" ou "Próxima Semana"
+  addedByUserId   String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  addedBy   User?     @relation(fields: [addedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, checked])
+  @@map("shopping_items")
+}
+
+model Expense {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  title        String
+  amount       Float
+  category     String   @default("GROCERIES") // GROCERIES | DATE_NIGHT | HOUSEHOLD | OTHER
+  paidByUserId String?
+  splitEqually Boolean  @default(true)
+  notes        String?
+  date         DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  paidBy    User?     @relation(fields: [paidByUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, date])
+  @@map("expenses")
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  workspaceId String
+  userId      String?
+  action      String // CREATE | UPDATE | DELETE
+  entity      String // MEAL_PLAN | RECIPE | WORKSPACE | SUBSCRIPTION
+  entityId    String
+  changes     String // Compact JSON diff: { field, old, new }
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@map("activity_logs")
+}
+
+model Subscription {
+  id                     String    @id @default(uuid())
+  workspaceId            String    @unique
+  status                 String    @default("ACTIVE") // TRIAL | ACTIVE | PAST_DUE | CANCELED
+  planType               String    @default("FREE") // FREE | PRO_MONTHLY | PRO_ANNUAL
+  storeProvider          String    @default("REVENUECAT") // REVENUECAT | APPLE_STORE | GOOGLE_PLAY | STRIPE
+  externalCustomerId     String?
+  externalSubscriptionId String?
+  currentPeriodEnd       DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}

@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: healthy_routine_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: healthy_user
+      POSTGRES_PASSWORD: healthy_password
+      POSTGRES_DB: healthy_routine_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "Healthy Routine",
+    "slug": "healthy-routine",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#064E3B"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.healthyroutine.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#064E3B",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "package": "com.healthyroutine.app",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-asset"
+    ]
+  }
+}
