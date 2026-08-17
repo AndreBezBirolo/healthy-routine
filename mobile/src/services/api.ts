@@ -8,7 +8,7 @@ import i18n from '../i18n';
 // 1. No Expo Go / Celular físico: usa o IP do host do Metro (ex: 192.168.15.3:3333)
 // 2. No emulador Android: 10.0.2.2:3333
 // URL de Produção no Heroku:
-const PRODUCTION_API_URL: string | null = 'https://healthy-routine-api-2aed84e7d72c.herokuapp.com/';
+const PRODUCTION_API_URL: string | null = 'https://healthy-routine-api-2aed84e7d72c.herokuapp.com/api/v1';
 
 const getBaseUrl = () => {
   if (PRODUCTION_API_URL) {
